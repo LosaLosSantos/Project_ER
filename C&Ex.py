@@ -67,24 +67,22 @@ HDI_few_nan
 Glob_df2 = Glob_df[Glob_df.index.get_level_values("Code").isin(HDI_few_nan.index)]
 
 Glob_df2.isna().sum()
-#Filling Nan in Human Development index using a linear method, with limit 3 , it's like a crossed control, 
-#because before i left all the countrie with more than 3 nan 
-Glob_df2["Human Development Index"] = Glob_df2["Human Development Index"].interpolate(method='linear', limit= 3)
+#A function to interpolate the nan data for each country
+#Filling Nan using a linear method, with a determinated limit , it's like a crossed control, 
+#because before use this function, maybe i left some country with some amount of nan.
+#Moreover limit_direction = "both" so the interpolation work in both the side of the interpolation
+def interpolate_country_nan(df, column_name, limit=None):
 
+    for code in df.index.get_level_values("Code").unique():
+        country_data = df.loc[code][column_name]
+        
+        country_data.interpolate(method="linear", limit=limit, limit_direction = "both", inplace =True)
+interpolate_country_nan(Glob_df2,"Human Development Index", limit=3)
 Glob_df2.isna().sum()
 #Replace dots with NaN throughout the dataframe, too estimate the real number of Nan in the others columns
-Glob_df2.replace('..', np.nan, inplace=True)
+Glob_df2.replace("..", np.nan, inplace=True)
 
 Glob_df2.isna().sum()
-#I'm getting an idea of ​​the countries with missing values ​​in the key indices for my analysis
-GDP2015_mask = Glob_df2.groupby('Code')["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].agg(lambda x : x.isnull().sum())
-GDP2015_mask[GDP2015_mask != 0]
-GDP2015_few_nan = GDP2015_mask[GDP2015_mask < 5]
-
-Glob_df2 = Glob_df2[Glob_df2.index.get_level_values("Code").isin(GDP2015_few_nan.index)]
-Glob_df2.isna().sum()
-GDP_current_mask = Glob_df2.groupby("Code")["GDP (current US$) [NY.GDP.MKTP.CD]"].agg(lambda x : x.isnull().sum())
-GDP_current_mask[GDP_current_mask != 0]
 print(Glob_df2.columns)
 #i drop columns that i'm sure to don't use
 columns_to_drop = ["Country Name", "Time Code", "Arms exports (SIPRI trend indicator values) [MS.MIL.XPRT.KD]",
@@ -98,25 +96,34 @@ columns_to_drop = ["Country Name", "Time Code", "Arms exports (SIPRI trend indic
 "Central government debt, total (% of GDP) [GC.DOD.TOTL.GD.ZS]", "Interest payments (% of expense) [GC.XPN.INTP.ZS]",
 "Researchers in R&D (per million people) [SP.POP.SCIE.RD.P6]", "Expense (% of GDP) [GC.XPN.TOTL.GD.ZS]",
 "Labor force, total [SL.TLF.TOTL.IN]", "Land area (sq. km) [AG.LND.TOTL.K2]",
-"Merchandise exports (current US$) [TX.VAL.MRCH.CD.WT]", "Merchandise imports (current US$) [TM.VAL.MRCH.CD.WT]",
 "Energy imports, net (% of energy use) [EG.IMP.CONS.ZS]", "Fossil fuel energy consumption (% of total) [EG.USE.COMM.FO.ZS]",
 "Food exports (% of merchandise exports) [TX.VAL.FOOD.ZS.UN]", "Food imports (% of merchandise imports) [TM.VAL.FOOD.ZS.UN]",
 "Population, female (% of total population) [SP.POP.TOTL.FE.ZS]", "Population, male (% of total population) [SP.POP.TOTL.MA.ZS]",
 "Agricultural raw materials imports (% of merchandise imports) [TM.VAL.AGRI.ZS.UN]", 
-"Agricultural raw materials exports (% of merchandise exports) [TX.VAL.AGRI.ZS.UN]", "Surface area (sq. km) [AG.SRF.TOTL.K2]","GDP (current US$) [NY.GDP.MKTP.CD]"]
+"Agricultural raw materials exports (% of merchandise exports) [TX.VAL.AGRI.ZS.UN]", "Surface area (sq. km) [AG.SRF.TOTL.K2]",
+"GDP (current US$) [NY.GDP.MKTP.CD]"]
 
 Glob_df2 = Glob_df2.drop(columns=columns_to_drop)
 
 Glob_df2.info()
 print(Glob_df2.columns)
+#I'm getting an idea of ​​the countries with missing values ​​in the key indices for my analysis
+GDP2015_mask = Glob_df2.groupby("Code")["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].agg(lambda x : x.isnull().sum())
+GDP2015_mask[GDP2015_mask != 0]
+#I choose less than 5 Nan for country
+GDP2015_few_nan = GDP2015_mask[GDP2015_mask < 5]
+
+Glob_df2 = Glob_df2[Glob_df2.index.get_level_values("Code").isin(GDP2015_few_nan.index)]
+Glob_df2.isna().sum()
 Glob_df3 = Glob_df2.copy()
-#The code selects columns with data type 'object' and then applies the pd.to_numeric function to convert to numeric format.
+#The code selects columns with data type "object" and then applies the pd.to_numeric function to convert to numeric format.
 #This helps in transforming non-numeric data to numeric, replacing non-convertible values with NaN.
 
 columns_to_convert = Glob_df3.columns[Glob_df3.dtypes == "object"]
 Glob_df3[columns_to_convert] = Glob_df3[columns_to_convert].apply(pd.to_numeric)
 Glob_df3.isna().sum() == Glob_df2.isna().sum()
-Glob_df3["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"] = Glob_df3["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].interpolate(method='linear', limit = 4)
+#I putted this command after the command for change data from type 'object' to numbers
+interpolate_country_nan(Glob_df3,"GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", limit=4)
 Glob_df3.isna().sum()
 Glob_df3.index
 #I'm plotting all countries, for each code (coutry) i show the values during the period
@@ -143,6 +150,7 @@ enough_pop_mask = average_pop[average_pop > 300000]
 
 average_pop[average_pop < 300000]
 
+#I selected the countries with more than 300000 of population
 Glob_df3 = Glob_df3[Glob_df3.index.get_level_values("Code").isin(enough_pop_mask.index)]
 #I want create a column GDP pro capita, but taking inflation into account
 
