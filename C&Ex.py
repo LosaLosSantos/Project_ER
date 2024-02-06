@@ -170,3 +170,43 @@ plt.figure(figsize=(25, 25))
 sns.heatmap(correlation_matrix, cmap="coolwarm", annot=True, fmt=".2f", linewidths=.5)
 plt.title("Correlation matrix of the columns")
 plt.show()
+
+#I want select the first 10 country of GDP (constant 2015 US$)"
+sorted_gdp_df = Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2022].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
+
+# Selecting the countries
+top_gdp_countries = sorted_gdp_df.head(10)
+
+print(top_gdp_countries.index.get_level_values("Code"))
+
+#The new dataset with all the values and coloumns for each country
+GDP_cons_df = Glob_df3.loc[Glob_df3.index.get_level_values("Code").isin(top_gdp_countries.index.get_level_values("Code"))]
+GDP_cons_df
+
+GDP_cons_df_2022 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022]
+
+from matplotlib.cm import ScalarMappable
+
+#Show the GDP per capita and Human Development Index for the best 10 economies in the world in the 2022
+plt.figure(figsize=(8, 6))
+
+scatter = plt.scatter(GDP_cons_df_2022["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"], GDP_cons_df_2022["GDP_pc"],
+                      s=500, c=GDP_cons_df_2022["Human Development Index"],
+                      cmap='RdYlGn', alpha=0.7, label='GDP')
+
+#labels with country names for each point
+for i, code in enumerate(GDP_cons_df_2022.index.get_level_values("Code")):
+    plt.annotate(code,(GDP_cons_df_2022["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].iloc[i], GDP_cons_df_2022["GDP_pc"].iloc[i]),
+                 fontsize=10, ha='center',va='center',xytext=(0, 0), textcoords='offset points') 
+
+plt.xlabel("GDP (constant 2015 US$)")
+plt.ylabel("GDP per capita")
+plt.title("The best 10 economies in the world (2022): HDI between GDP and GDP per capita")
+#Color Bar
+sm = ScalarMappable(cmap='RdYlGn')
+sm.set_array(GDP_cons_df_2022["Human Development Index"])
+#Position of the bar
+cbar = plt.colorbar(sm, label='Human Development Index', orientation='vertical', ax=plt.gca())
+cbar.set_label('Human Development Index')
+
+plt.show()
