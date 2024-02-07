@@ -28,7 +28,7 @@ Glob_df[5424:6656]
 Glob_df.drop(Glob_df.index[5425:6656], inplace=True)
 print(Glob_df.shape)
 print(HDI_df.shape)
-#now i change the type of Year in Glob_df so for have the same type of HDI_df
+#now i change the type of Year in Glob_df to have the same type of HDI_df
 Glob_df["Year"] = Glob_df["Year"].astype(int)
 
 print(f"{Glob_df.columns}\n{HDI_df.columns}")
@@ -67,10 +67,11 @@ HDI_few_nan
 Glob_df2 = Glob_df[Glob_df.index.get_level_values("Code").isin(HDI_few_nan.index)]
 
 Glob_df2.isna().sum()
-#A function to interpolate the nan data for each country
+#A function to interpolate the nan data for each country, i want use this comand because it's easy to use and with time series 
+#work better than mean or other way.
 #Filling Nan using a linear method, with a determinated limit , it's like a crossed control, 
-#because before use this function, maybe i left some country with some amount of nan.
-#Moreover limit_direction = "both" so the interpolation work in both the side of the interpolation
+#because before use this function, maybe i could left some country with some nan.
+#Moreover limit_direction = "both" so the interpolation work in both the side of the values in the coloumn
 def interpolate_country_nan(df, column_name, limit=None):
 
     for code in df.index.get_level_values("Code").unique():
@@ -104,7 +105,6 @@ columns_to_drop = ["Country Name", "Time Code", "Arms exports (SIPRI trend indic
 "GDP (current US$) [NY.GDP.MKTP.CD]"]
 
 Glob_df2 = Glob_df2.drop(columns=columns_to_drop)
-
 Glob_df2.info()
 print(Glob_df2.columns)
 #I'm getting an idea of ​​the countries with missing values ​​in the key indices for my analysis
@@ -143,7 +143,7 @@ def plot_all_countries(dataframe, column_name):
 plot_all_countries(Glob_df3, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]")
 plot_all_countries(Glob_df3, "Human Development Index")
 Glob_df3["Population, total [SP.POP.TOTL]"].isna().sum()
-#i'm removing countries with population too small
+#i'm removing countries with population too small (the mean during the period), misleading for the analyses
 average_pop = Glob_df3.groupby("Code")["Population, total [SP.POP.TOTL]"].mean()
 
 enough_pop_mask = average_pop[average_pop > 300000]
@@ -156,7 +156,7 @@ Glob_df3 = Glob_df3[Glob_df3.index.get_level_values("Code").isin(enough_pop_mask
 
 Glob_df3["GDP_pc"] = Glob_df3["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"] / Glob_df3["Population, total [SP.POP.TOTL]"]
 plot_all_countries(Glob_df3, "GDP_pc")
-#watching the 10 highest gdp pc in the world (year 2022)
+#watching the 10 highest gdp per capita in the world (year 2022)
 gdp_pc_2022 = Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2022, "GDP_pc"]
 top_gdp_pc_2022 = gdp_pc_2022.nlargest(10)
 
@@ -167,23 +167,36 @@ import seaborn as sns
 correlation_matrix = Glob_df3.corr()
 
 plt.figure(figsize=(25, 25))
-sns.heatmap(correlation_matrix, cmap="coolwarm", annot=True, fmt=".2f", linewidths=.5)
+sns.heatmap(correlation_matrix, cmap="coolwarm", annot=True, fmt=".2f")
 plt.title("Correlation matrix of the columns")
 plt.show()
-
-#I want select the first 10 country of GDP (constant 2015 US$)"
-sorted_gdp_df = Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2022].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
-
-# Selecting the countries
-top_gdp_countries = sorted_gdp_df.head(10)
-
+#I want select the first 13 country of GDP (constant 2015 US$)"
+sorted_22_gdp_df = Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2022].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
+top_gdp9_countries = sorted_22_gdp_df.head(9) #i will use this for the line graph of the gdp performance
+top_gdp_countries = sorted_22_gdp_df.head(13) #i will use it for the dataset useful for the graphs
 print(top_gdp_countries.index.get_level_values("Code"))
 
 #The new dataset with all the values and coloumns for each country
 GDP_cons_df = Glob_df3.loc[Glob_df3.index.get_level_values("Code").isin(top_gdp_countries.index.get_level_values("Code"))]
 GDP_cons_df
 
+# Create line graph for GDP over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
+#country considering the gdp in 2022
+plt.figure(figsize=(10, 6))
+
+for country_code in top_gdp9_countries.index.get_level_values("Code").unique():
+    country_data = GDP_cons_df.loc[country_code, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"]
+    years = country_data.index.get_level_values("Year")
+    plt.plot(years, country_data, label=country_code)
+
+plt.xlabel("Year")
+plt.ylabel("GDP (constant 2015 US$)")
+plt.title("The top 9 of highest GDP (constant 2015 US$)")
+plt.legend(title='Country Codes', loc='upper left')
+plt.grid()
+plt.show()
 GDP_cons_df_2022 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022]
+GDP_cons_df_2022
 
 from matplotlib.cm import ScalarMappable
 
@@ -191,7 +204,7 @@ from matplotlib.cm import ScalarMappable
 plt.figure(figsize=(8, 6))
 
 scatter = plt.scatter(GDP_cons_df_2022["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"], GDP_cons_df_2022["GDP_pc"],
-                      s=500, c=GDP_cons_df_2022["Human Development Index"],
+                      s=600, c=GDP_cons_df_2022["Human Development Index"],
                       cmap='RdYlGn', alpha=0.7, label='GDP')
 
 #labels with country names for each point
@@ -202,11 +215,60 @@ for i, code in enumerate(GDP_cons_df_2022.index.get_level_values("Code")):
 plt.xlabel("GDP (constant 2015 US$)")
 plt.ylabel("GDP per capita")
 plt.title("The best 10 economies in the world (2022): HDI between GDP and GDP per capita")
+
 #Color Bar
 sm = ScalarMappable(cmap='RdYlGn')
 sm.set_array(GDP_cons_df_2022["Human Development Index"])
+
 #Position of the bar
 cbar = plt.colorbar(sm, label='Human Development Index', orientation='vertical', ax=plt.gca())
 cbar.set_label('Human Development Index')
 
+plt.show()
+GDP_cons_df.index
+GDP_cons_df.isna().sum()
+#I want select the first 9 country of Military expenditure (% of GDP) in 2022 among the biggest 9 countries in the world for gdp in 2022"
+sorted_22_mil_df = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022].sort_values(by="Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]", ascending=False)
+top_mil_countries = sorted_22_mil_df.head(9)
+print(top_mil_countries.index.get_level_values("Code"))
+# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
+#country considering the gdp in 2022
+plt.figure(figsize=(10, 6))
+
+for country_code in top_mil_countries.index.get_level_values("Code").unique():
+    country_data = GDP_cons_df.loc[country_code, "Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]"]
+    years = country_data.index.get_level_values("Year")
+    plt.plot(years, country_data, label=country_code)
+
+plt.xlabel("Year")
+plt.ylabel("Military expenditure (% of GDP)")
+plt.title("Military Expenditure of the 8 Countries with Highest GDP in 2022")
+plt.legend(title='Country Codes', loc='upper left')
+plt.grid()
+plt.show()
+
+# Count of null values ​​of the column Research and development expenditure (% of GDP) for each country
+null_values_by_country = GDP_cons_df.groupby("Code")["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"].apply(lambda x: x.isna().sum())
+print(null_values_by_country)
+GDP_cons_df.loc["AUS"]["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"]
+#Nan for AUS present a distribution pretty spread out over the period, so I'll use interpolate on it too 
+interpolate_country_nan(GDP_cons_df,"Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", limit=None)
+#I want select the first 8 country of "Research and development expenditure (% of GDP)" in 2022 among the biggest 9 countries in the world for gdp in 2022"
+sorted_22_rs_df = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022].sort_values(by="Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", ascending=False)
+top_rs_countries = sorted_22_rs_df.head(9)
+print(top_rs_countries.index.get_level_values("Code"))
+# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
+#country considering the gdp in 2022
+plt.figure(figsize=(10, 6))
+
+for country_code in top_rs_countries.index.get_level_values("Code").unique():
+    country_data = GDP_cons_df.loc[country_code, "Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"]
+    years = country_data.index.get_level_values("Year")
+    plt.plot(years, country_data, label=country_code)
+
+plt.xlabel("Year")
+plt.ylabel("Research and development expenditure (% of GDP)")
+plt.title("Research and development expenditure of the 9 Countries with highest GDP in 2022")
+plt.legend(title='Country Codes', loc='upper left')
+plt.grid()
 plt.show()
