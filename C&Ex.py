@@ -180,21 +180,24 @@ print(top_gdp_countries.index.get_level_values("Code"))
 GDP_cons_df = Glob_df3.loc[Glob_df3.index.get_level_values("Code").isin(top_gdp_countries.index.get_level_values("Code"))]
 GDP_cons_df
 
-# Create line graph for GDP over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
+def plot_country_data(dataframe, countries, column_name, ylabel, title):
+    plt.figure(figsize=(10, 6))
+
+    for country_code in countries.index.get_level_values("Code").unique():
+        country_data = dataframe.loc[country_code, column_name]
+        years = country_data.index.get_level_values("Year")
+        plt.plot(years, country_data, label=country_code)
+
+    plt.xlabel("Year")
+    plt.ylabel(ylabel)
+    plt.title(title)
+    plt.legend(title='Country Codes', loc='upper left')
+    plt.grid()
+    plt.show()
+# Create line graph for GDP over time for the top 9 countries with highest GDP (constant 2015 US$) in 2022 among the biggest
 #country considering the gdp in 2022
-plt.figure(figsize=(10, 6))
-
-for country_code in top_gdp9_countries.index.get_level_values("Code").unique():
-    country_data = GDP_cons_df.loc[country_code, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"]
-    years = country_data.index.get_level_values("Year")
-    plt.plot(years, country_data, label=country_code)
-
-plt.xlabel("Year")
-plt.ylabel("GDP (constant 2015 US$)")
-plt.title("The top 9 of highest GDP (constant 2015 US$)")
-plt.legend(title='Country Codes', loc='upper left')
-plt.grid()
-plt.show()
+plot_country_data(GDP_cons_df, top_gdp9_countries, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", 
+                  "GDP (constant 2015 US$)", "The top 9 of highest GDP (constant 2015 US$)")
 GDP_cons_df_2022 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022]
 GDP_cons_df_2022
 
@@ -231,25 +234,11 @@ GDP_cons_df.isna().sum()
 sorted_22_mil_df = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2022].sort_values(by="Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]", ascending=False)
 top_mil_countries = sorted_22_mil_df.head(9)
 print(top_mil_countries.index.get_level_values("Code"))
-# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
-#country considering the gdp in 2022
-plt.figure(figsize=(10, 6))
-
-for country_code in top_mil_countries.index.get_level_values("Code").unique():
-    country_data = GDP_cons_df.loc[country_code, "Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]"]
-    years = country_data.index.get_level_values("Year")
-    plt.plot(years, country_data, label=country_code)
-
-plt.xlabel("Year")
-plt.ylabel("Military expenditure (% of GDP)")
-plt.title("Military Expenditure of the 8 Countries with Highest GDP in 2022")
-plt.legend(title='Country Codes', loc='upper left')
-plt.grid()
-plt.show()
-
+plot_country_data(GDP_cons_df, top_mil_countries, "Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]", 
+                  "Military expenditure (% of GDP)", "Military Expenditure of the 8 Countries with highest GDP in 2022")
 # Count of null values ​​of the column Research and development expenditure (% of GDP) for each country
-null_values_by_country = GDP_cons_df.groupby("Code")["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"].apply(lambda x: x.isna().sum())
-print(null_values_by_country)
+null_rs_by_country = GDP_cons_df.groupby("Code")["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"].apply(lambda x: x.isna().sum())
+print(null_rs_by_country)
 GDP_cons_df.loc["AUS"]["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"]
 #Nan for AUS present a distribution pretty spread out over the period, so I'll use interpolate on it too 
 interpolate_country_nan(GDP_cons_df,"Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", limit=None)
@@ -259,16 +248,17 @@ top_rs_countries = sorted_22_rs_df.head(9)
 print(top_rs_countries.index.get_level_values("Code"))
 # Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
 #country considering the gdp in 2022
-plt.figure(figsize=(10, 6))
-
-for country_code in top_rs_countries.index.get_level_values("Code").unique():
-    country_data = GDP_cons_df.loc[country_code, "Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"]
-    years = country_data.index.get_level_values("Year")
-    plt.plot(years, country_data, label=country_code)
-
-plt.xlabel("Year")
-plt.ylabel("Research and development expenditure (% of GDP)")
-plt.title("Research and development expenditure of the 9 Countries with highest GDP in 2022")
-plt.legend(title='Country Codes', loc='upper left')
-plt.grid()
-plt.show()
+plot_country_data(GDP_cons_df, top_rs_countries, "Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", 
+                  "Research and development expenditure (% of GDP)", "Research and development expenditure of the 9 Countries with highest GDP in 2022")
+# Count of null values ​​of the column Research and development expenditure (% of GDP) for each country
+null_nr_by_country = GDP_cons_df.groupby("Code")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].apply(lambda x: x.isna().sum())
+print(null_nr_by_country)
+#i will not interpolate nan, because is the year 2022 for every country, so in this case i watch the trend until 2021
+#I want select the first 9 country of "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]" in 2022 among the biggest 9 countries in the world for gdp in 2022"
+sorted_22_nr_df = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", ascending=False)
+top_nr_countries = sorted_22_nr_df.head(9)
+print(top_nr_countries.index.get_level_values("Code"))
+# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
+#country considering the gdp in 2022
+plot_country_data(GDP_cons_df, top_nr_countries, "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", 
+                  "Total natural resources rents (% of GDP)", "Total natural resources rents of the 9 Countries with highest GDP in 2022")
