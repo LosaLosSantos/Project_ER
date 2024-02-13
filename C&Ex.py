@@ -144,16 +144,6 @@ def plot_all_countries(dataframe, column_name):
     plt.show()
 plot_all_countries(Glob_df3, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]")
 plot_all_countries(Glob_df3, "Human Development Index")
-Glob_df3["Population, total [SP.POP.TOTL]"].isna().sum()
-#i'm removing countries with population too small (the mean during the period), misleading for the analyses
-average_pop = Glob_df3.groupby("Code")["Population, total [SP.POP.TOTL]"].mean()
-
-enough_pop_mask = average_pop[average_pop > 300000]
-
-average_pop[average_pop < 300000]
-
-#I selected the countries with more than 300000 of population
-Glob_df3 = Glob_df3[Glob_df3.index.get_level_values("Code").isin(enough_pop_mask.index)]
 #I want create a column GDP pro capita, but taking inflation into account
 
 Glob_df3["GDP_pc"] = Glob_df3["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"] / Glob_df3["Population, total [SP.POP.TOTL]"]
@@ -169,20 +159,22 @@ plt.figure(figsize=(25, 25))
 sns.heatmap(correlation_matrix, cmap="coolwarm", annot=True, fmt=".2f")
 plt.title("Correlation matrix of the columns")
 plt.show()
-Plots
+
 #The new dataset for interpolate the others columns useful for the analises
 Glob_df4 = Glob_df3
 Glob_df4.isna().groupby("Code").sum()
 Glob_df4.isna().sum()
+Glob_df4.groupby("Code").apply(lambda x: x.isnull().sum())
+interpolate_country_nan(Glob_df4,"Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", limit=None)
 #I want select the first 13 country of GDP (constant 2015 US$), i'm selecting them usng the values at 2021.
-sorted_21_gdp_df = Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2021].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
+sorted_21_gdp_df = Glob_df4.loc[Glob_df4.index.get_level_values("Year") == 2021].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
 top_gdp9_countries = sorted_21_gdp_df.head(9) #i will use this for the line graph of the gdp performance
 top_gdp_countries = sorted_21_gdp_df.head(13) #i will use it for the dataset useful for the other graphs
 print(top_gdp_countries.index.get_level_values("Code"))
 print(sorted_21_gdp_df)
 
 #The new dataset with all the values and coloumns for each country
-GDP_cons_df = Glob_df3.loc[Glob_df3.index.get_level_values("Code").isin(top_gdp_countries.index.get_level_values("Code"))]
+GDP_cons_df = Glob_df4.loc[Glob_df4.index.get_level_values("Code").isin(top_gdp_countries.index.get_level_values("Code"))]
 GDP_cons_df
 
 def plot_country_data(dataframe, countries, column_name, ylabel, title):
@@ -249,8 +241,8 @@ interpolate_country_nan(GDP_cons_df,"Research and development expenditure (% of 
 #I want select the first 9 country of "Research and development expenditure (% of GDP)" in 2021 among the biggest 13 countries in the world for gdp in 2021"
 top_rs_countries = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", ascending=False).head(9)
 print(top_rs_countries.index.get_level_values("Code"))
-# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
-#country considering the gdp in 2022
+# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2021 among the biggest
+#country considering the gdp in 2021
 plot_country_data(GDP_cons_df, top_rs_countries, "Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", 
                   "Research and development expenditure (% of GDP)", "Research and development expenditure of the 9 Countries with highest GDP in 2022")
 # Count of null values ​​of the column Research and development expenditure (% of GDP) for each country
@@ -262,14 +254,15 @@ print(top_nr_countries.index.get_level_values("Code"))
 #country considering the gdp in 2022
 plot_country_data(GDP_cons_df, top_nr_countries, "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", 
                   "Total natural resources rents (% of GDP)", "Total natural resources rents of the 9 Countries with highest GDP in 2022")
-
 Glob_21_df = sorted_21_gdp_df
-Glob_21_df
+Glob_98_df = Glob_df4.loc[Glob_df4.index.get_level_values("Year") == 1998].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
+print(Glob_21_df)
+Glob_98_df
 
 def development_classes(row):
     if row['Human Development Index'] >= 0.8 and row['GDP_pc'] >= 11000:
         return "Developed"
-    elif row['GDP (constant 2015 US$) [NY.GDP.MKTP.KD]'] >= 1.561616e+12 or ((row['Human Development Index'] >= 0.8 and row['GDP_pc'] < 11000) or \
+    elif row['GDP (constant 2015 US$) [NY.GDP.MKTP.KD]'] >= 1.5e+12 or ((row['Human Development Index'] >= 0.8 and row['GDP_pc'] < 11000) or \
         (0.5 <= row['Human Development Index'] < 0.8 and row['GDP_pc'] >= 11000)  or \
             (0.5 <= row['Human Development Index'] < 0.8 and 3255 <= row['GDP_pc'] <= 11000)  or \
                 (row['Human Development Index'] <= 0.5 and row['GDP_pc'] > 11000) or\
@@ -279,7 +272,39 @@ def development_classes(row):
         return "Underdeveloped"
 
 Glob_21_df["Development_Class"] = Glob_21_df.apply(development_classes, axis=1)
+Glob_98_df["Development_Class"] = Glob_98_df.apply(development_classes, axis=1)
 
 
 Glob_21_df["Development_Class"].head(25)
-Glob_21_df.isna().sum()
+print(Glob_21_df.isna().sum())
+Glob_98_df.isna().sum()
+counts_2021 = Glob_21_df["Development_Class"].value_counts()
+counts_1998 = Glob_98_df["Development_Class"].value_counts()
+fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+axs[0].bar(counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).index, counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).values, color="lightgreen")
+axs[0].set_title("Number of countries per development class (1998)")
+axs[0].set_ylabel("Number of countries")
+
+axs[1].bar(counts_2021.reindex(["Developed", "Developing", "Underdeveloped"]).index, counts_2021.reindex(["Developed", "Developing", "Underdeveloped"]).values, color="skyblue")
+axs[1].set_title("Number of countries per development class (2021)")
+
+plt.show()
+
+print(Glob_21_df.groupby("Development_Class")["Population, total [SP.POP.TOTL]"].sum())
+Glob_98_df.groupby("Development_Class")["Population, total [SP.POP.TOTL]"].sum()
+population_sum_1998 = {"Developed": 884951495,"Developing": 2249849761,"Underdeveloped": 2619712696}
+population_sum_2021 = {"Developed": 1364608769, "Developing": 4591342874,"Underdeveloped": 1578135042}
+
+fig, axs = plt.subplots(1, 2, figsize=(9, 7))
+
+axs[0].pie(population_sum_1998.values(), labels=population_sum_1998.keys(), autopct='%1.1f%%', colors=["skyblue", "lightgreen", "lightcoral"])
+axs[0].set_title('Population Distribution by Development Class (1998)')
+
+axs[1].pie(population_sum_2021.values(), labels=population_sum_2021.keys(), autopct='%1.1f%%', colors=["skyblue", "lightgreen", "lightcoral"])
+axs[1].set_title('Population Distribution by Development Class (2021)')
+
+plt.tight_layout()
+plt.show()
+print(Glob_21_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean())
+Glob_98_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()
