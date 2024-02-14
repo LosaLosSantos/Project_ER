@@ -39,29 +39,32 @@ print(Glob_df)
 #I controll the null values before the merge
 print(f"{Glob_df.isnull().sum()}\n{HDI_df.isnull().sum()}")
 print(HDI_df[5855:5940])
-#I do the merge and lose the HDI_df's rows without correspondence with Glob_df
-Glob_df = Glob_df.merge(HDI_df["Human Development Index"], left_index=True, right_index=True, how='left')
+#I do the merge, how="left" to use only keys from left frame and using index of both datasets for the merge
+Glob_df = Glob_df.merge(HDI_df["Human Development Index"], left_index=True, right_index=True, how="left")
 
 #I controll the Nan created with the merge
 Glob_df["Human Development Index"].isnull().value_counts()
+
+Glob_df.info()
 HDI_nan_countries = Glob_df.groupby("Code")["Human Development Index"].agg(lambda x : x.isnull().sum())
 HDI_nan_countries
 #i'm watching how many countries have no data for the HDI
 HDI_nan_countries[HDI_nan_countries == 25].index
-#This country code there were not in HDI_df.I controlled with ex. HDI_df.loc["SXM"], HDI_df.loc["GUM"]
+
+#This country code there were not in HDI_df. I controlled with ex. HDI_df.loc["GUM"] HDI_df.loc["SXM"]
 #The others country with Nan Values is for dismatch beetween years in the two merged dataset
 #(every country have at least one because the year 2022 there was not in the HDI_df ), 
-#so i decided to mantain only country with <4 Nan that i can manage sobstituing Nan while a prediction of the values
+#so i decided to delete the year 2022 and mantain only country with <5
 HDI_df.loc["AGO"]
 HDI_df.loc["GNB"]
 HDI_df.loc["AND"]
-#i decided to delete countries with more than 3 Nan so i control which they are
-HDI_too_nan = HDI_nan_countries[(HDI_nan_countries > 3)]
+#i decided to delete countries with more than 4 Nan so i control which they are
+HDI_too_nan = HDI_nan_countries[(HDI_nan_countries > 5)]
 
 #i control the countris with too many nan values in the HDI column
 HDI_too_nan.index
 #i create the mask of the countries that i want mantain
-HDI_few_nan = HDI_nan_countries[HDI_nan_countries <= 3]
+HDI_few_nan = HDI_nan_countries[HDI_nan_countries <= 4]
 HDI_few_nan
 #i take these countries applying the boolean mask
 Glob_df2 = Glob_df[Glob_df.index.get_level_values("Code").isin(HDI_few_nan.index)]
@@ -71,7 +74,7 @@ Glob_df2.isna().sum()
 Glob_df2.replace("..", np.nan, inplace=True)
 
 Glob_df2.isna().sum()
-#the year 2022 present too many Nan in the columns useful for my analises
+#the year 2022 present too many Nan in the columns useful for my analises and moreover the HDI don't have values for any country
 Glob_df2.isna().groupby("Year").sum()
 Glob_df2.drop(index=2022, level="Year", inplace = True) 
 print(Glob_df2.columns)
@@ -159,7 +162,6 @@ plt.figure(figsize=(25, 25))
 sns.heatmap(correlation_matrix, cmap="coolwarm", annot=True, fmt=".2f")
 plt.title("Correlation matrix of the columns")
 plt.show()
-
 #The new dataset for interpolate the others columns useful for the analises
 Glob_df4 = Glob_df3
 Glob_df4.isna().groupby("Code").sum()
@@ -195,21 +197,21 @@ def plot_country_data(dataframe, countries, column_name, ylabel, title):
 #13 country considering the gdp in 2021
 plot_country_data(GDP_cons_df, top_gdp9_countries, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", 
                   "GDP (constant 2015 US$)", "The top 9 of highest GDP (constant 2015 US$)")
-GDP_cons_df_2021 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021]
-GDP_cons_df_2021
+GDP_cons_df_21 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021]
+GDP_cons_df_21
 
 from matplotlib.cm import ScalarMappable
 
 #Show the GDP per capita and Human Development Index for the best 10 economies in the world in the 2021
 plt.figure(figsize=(8, 6))
 
-scatter = plt.scatter(GDP_cons_df_2021["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"], GDP_cons_df_2021["GDP_pc"],
-                      s=600, c=GDP_cons_df_2021["Human Development Index"],
+scatter = plt.scatter(GDP_cons_df_21["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"], GDP_cons_df_21["GDP_pc"],
+                      s=600, c=GDP_cons_df_21["Human Development Index"],
                       cmap="RdYlGn", alpha=0.7, label="GDP")
 
 #labels with country names for each point
-for i, code in enumerate(GDP_cons_df_2021.index.get_level_values("Code")):
-    plt.annotate(code,(GDP_cons_df_2021["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].iloc[i], GDP_cons_df_2021["GDP_pc"].iloc[i]),
+for i, code in enumerate(GDP_cons_df_21.index.get_level_values("Code")):
+    plt.annotate(code,(GDP_cons_df_21["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].iloc[i], GDP_cons_df_21["GDP_pc"].iloc[i]),
                  fontsize=10, ha="center",va="center",xytext=(0, 0), textcoords="offset points") 
 
 plt.xlabel("GDP (constant 2015 US$)")
@@ -218,7 +220,7 @@ plt.title("The best 10 economies in the world (2022): HDI between GDP and GDP pe
 
 #Color Bar
 sm = ScalarMappable(cmap="RdYlGn")
-sm.set_array(GDP_cons_df_2021["Human Development Index"])
+sm.set_array(GDP_cons_df_21["Human Development Index"])
 
 #Position of the bar
 cbar = plt.colorbar(sm, label="Human Development Index", orientation="vertical", ax=plt.gca())
@@ -247,13 +249,23 @@ plot_country_data(GDP_cons_df, top_rs_countries, "Research and development expen
                   "Research and development expenditure (% of GDP)", "Research and development expenditure of the 9 Countries with highest GDP in 2022")
 # Count of null values ​​of the column Research and development expenditure (% of GDP) for each country
 GDP_cons_df.groupby("Code")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].apply(lambda x: x.isna().sum())
-#I want select the first 9 country of "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]" in 2022 among the biggest 9 countries in the world for gdp in 2022"
+#I want select the first 9 country of "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]" in 2021 among the biggest 9 countries in the world for gdp in 2021"
 top_nr_countries  = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", ascending=False).head(9)
 print(top_nr_countries.index.get_level_values("Code"))
-# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2022 among the biggest
-#country considering the gdp in 2022
+# Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2021 among the biggest
+#country considering the gdp in 2021
 plot_country_data(GDP_cons_df, top_nr_countries, "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", 
                   "Total natural resources rents (% of GDP)", "Total natural resources rents of the 9 Countries with highest GDP in 2022")
+null_he_by_country = GDP_cons_df.groupby("Code")["Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]"].apply(lambda x: x.isna().sum())
+print(null_he_by_country)
+print(GDP_cons_df.loc["USA"]["Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]"])
+GDP_cons_df.loc["IND"]["Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]"]
+
+interpolate_country_nan(GDP_cons_df,"Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]", limit=None)
+top_he_countries = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]", ascending=False).head(9)
+print(top_he_countries.index.get_level_values("Code"))
+plot_country_data(GDP_cons_df, top_he_countries, "Current health expenditure (% of GDP) [SH.XPD.CHEX.GD.ZS]", 
+                  "Current health expenditure (% of GDP)", "Current health expenditure of the 9 Countries with highest GDP in 2022")
 Glob_21_df = sorted_21_gdp_df
 Glob_98_df = Glob_df4.loc[Glob_df4.index.get_level_values("Year") == 1998].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
 print(Glob_21_df)
@@ -280,6 +292,8 @@ print(Glob_21_df.isna().sum())
 Glob_98_df.isna().sum()
 counts_2021 = Glob_21_df["Development_Class"].value_counts()
 counts_1998 = Glob_98_df["Development_Class"].value_counts()
+#Remeber: deleted 42 countries during the cleaning for lack of too many data in the coloumns HDI and GDP. 
+#Probably a lot of them could be in the Underdeveloped and Developing classes
 fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
 axs[0].bar(counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).index, counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).values, color="lightgreen")
@@ -306,5 +320,9 @@ axs[1].set_title('Population Distribution by Development Class (2021)')
 
 plt.tight_layout()
 plt.show()
-print(Glob_21_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean())
-Glob_98_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()
+#show that:
+#1)Developed countries have less % of GDP from natural resources rents
+#2)during the period, exporter countries of natural resources increase their condition
+print(f"1998:\n{Glob_98_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()}\n2021:\n{Glob_21_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()}")
+
+
