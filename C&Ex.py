@@ -78,7 +78,7 @@ Glob_df2.isna().sum()
 Glob_df2.isna().groupby("Year").sum()
 Glob_df2.drop(index=2022, level="Year", inplace = True) 
 print(Glob_df2.columns)
-#i drop columns that i'm sure to don't use
+#i drop columns that i'm sure to don't use and that present too many Nan
 columns_to_drop = ["Country Name", "Time Code", "Arms exports (SIPRI trend indicator values) [MS.MIL.XPRT.KD]",
 "Arms imports (SIPRI trend indicator values) [MS.MIL.MPRT.KD]", "Consumer price index (2010 = 100) [FP.CPI.TOTL]",
 "Cost of business start-up procedures, female (% of GNI per capita) [IC.REG.COST.PC.FE.ZS]",
@@ -94,13 +94,14 @@ columns_to_drop = ["Country Name", "Time Code", "Arms exports (SIPRI trend indic
 "Food exports (% of merchandise exports) [TX.VAL.FOOD.ZS.UN]", "Food imports (% of merchandise imports) [TM.VAL.FOOD.ZS.UN]",
 "Population, female (% of total population) [SP.POP.TOTL.FE.ZS]", "Population, male (% of total population) [SP.POP.TOTL.MA.ZS]",
 "Agricultural raw materials imports (% of merchandise imports) [TM.VAL.AGRI.ZS.UN]", 
-"Agricultural raw materials exports (% of merchandise exports) [TX.VAL.AGRI.ZS.UN]", "Surface area (sq. km) [AG.SRF.TOTL.K2]",
-"GDP (current US$) [NY.GDP.MKTP.CD]"]
+"Agricultural raw materials exports (% of merchandise exports) [TX.VAL.AGRI.ZS.UN]", "Surface area (sq. km) [AG.SRF.TOTL.K2]"]
 
 Glob_df2 = Glob_df2.drop(columns=columns_to_drop)
 Glob_df2.info()
 print(Glob_df2.columns)
-#I'm getting an idea of ​​the countries with missing values ​​in the key indices for my analysis
+GDPcurrent_mask = Glob_df2.groupby("Code")["GDP (current US$) [NY.GDP.MKTP.CD]"].agg(lambda x : x.isnull().sum())
+GDPcurrent_mask[GDPcurrent_mask != 0]
+#I'm getting an idea of ​​the countries with missing values ​​in the key indices for my analysis.
 GDP2015_mask = Glob_df2.groupby("Code")["GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"].agg(lambda x : x.isnull().sum())
 GDP2015_mask[GDP2015_mask != 0]
 #I choose less than 5 Nan for country
@@ -129,6 +130,7 @@ def interpolate_country_nan(df, column_name, limit=None):
 
 interpolate_country_nan(Glob_df3,"Human Development Index", limit= None)
 interpolate_country_nan(Glob_df3,"GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", limit=None)
+interpolate_country_nan(Glob_df3,"GDP (current US$) [NY.GDP.MKTP.CD]", limit=None)
 Glob_df3.isna().sum()
 Glob_df3.index
 #I'm plotting all countries, for each code (coutry) i show the values during the period
@@ -168,10 +170,10 @@ Glob_df4.isna().groupby("Code").sum()
 Glob_df4.isna().sum()
 Glob_df4.groupby("Code").apply(lambda x: x.isnull().sum())
 interpolate_country_nan(Glob_df4,"Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]", limit=None)
-#I want select the first 13 country of GDP (constant 2015 US$), i'm selecting them usng the values at 2021.
+#I want select the first 15 country of GDP (constant 2015 US$), i'm selecting them usng the values at 2021.
 sorted_21_gdp_df = Glob_df4.loc[Glob_df4.index.get_level_values("Year") == 2021].sort_values(by="GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", ascending=False)
 top_gdp9_countries = sorted_21_gdp_df.head(9) #i will use this for the line graph of the gdp performance
-top_gdp_countries = sorted_21_gdp_df.head(13) #i will use it for the dataset useful for the other graphs
+top_gdp_countries = sorted_21_gdp_df.head(15) #i will use it for the dataset useful for the other graphs
 print(top_gdp_countries.index.get_level_values("Code"))
 print(sorted_21_gdp_df)
 
@@ -190,11 +192,11 @@ def plot_country_data(dataframe, countries, column_name, ylabel, title):
     plt.xlabel("Year")
     plt.ylabel(ylabel)
     plt.title(title)
-    plt.legend(title='Country Codes', loc='upper left')
+    plt.legend(title="Country Codes", loc="upper left")
     plt.grid()
     plt.show()
 #Create line graph for GDP over time for the top 9 countries with highest GDP (constant 2015 US$) in 2021 among the biggest
-#13 country considering the gdp in 2021
+#15 country considering the gdp in 2021
 plot_country_data(GDP_cons_df, top_gdp9_countries, "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]", 
                   "GDP (constant 2015 US$)", "The top 9 of highest GDP (constant 2015 US$)")
 GDP_cons_df_21 = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021]
@@ -229,7 +231,7 @@ cbar.set_label("Human Development Index")
 plt.show()
 GDP_cons_df.index
 GDP_cons_df.isna().sum()
-#I want select the first 9 country of Military expenditure (% of GDP) in 2021 among the biggest 13 countries in the world for gdp in 2021"
+#I want select the first 9 country of Military expenditure (% of GDP) in 2021 among the biggest 15 countries in the world for gdp in 2021"
 top_mil_countries= GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]", ascending=False).head(9)
 print(top_mil_countries.index.get_level_values("Code"))
 plot_country_data(GDP_cons_df, top_mil_countries, "Military expenditure (% of GDP) [MS.MIL.XPND.GD.ZS]", 
@@ -240,7 +242,7 @@ print(null_rs_by_country)
 GDP_cons_df.loc["AUS"]["Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]"]
 #Nan for AUS present a distribution pretty spread out over the period, so I'll use interpolate on it too 
 interpolate_country_nan(GDP_cons_df,"Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", limit=None)
-#I want select the first 9 country of "Research and development expenditure (% of GDP)" in 2021 among the biggest 13 countries in the world for gdp in 2021"
+#I want select the first 9 country of "Research and development expenditure (% of GDP)" in 2021 among the biggest 15 countries in the world for gdp in 2021"
 top_rs_countries = GDP_cons_df.loc[GDP_cons_df.index.get_level_values("Year") == 2021].sort_values(by="Research and development expenditure (% of GDP) [GB.XPD.RSDV.GD.ZS]", ascending=False).head(9)
 print(top_rs_countries.index.get_level_values("Code"))
 # Create line graph for military spending over time for the top 9 countries with highest military expenditure (% of GDP) in 2021 among the biggest
@@ -290,17 +292,17 @@ Glob_98_df["Development_Class"] = Glob_98_df.apply(development_classes, axis=1)
 Glob_21_df["Development_Class"].head(25)
 print(Glob_21_df.isna().sum())
 Glob_98_df.isna().sum()
-counts_2021 = Glob_21_df["Development_Class"].value_counts()
-counts_1998 = Glob_98_df["Development_Class"].value_counts()
 #Remeber: deleted 42 countries during the cleaning for lack of too many data in the coloumns HDI and GDP. 
 #Probably a lot of them could be in the Underdeveloped and Developing classes
 fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
-axs[0].bar(counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).index, counts_1998.reindex(["Developed", "Developing", "Underdeveloped"]).values, color="lightgreen")
+axs[0].bar(Glob_98_df["Development_Class"].value_counts().reindex(["Developed", "Developing", "Underdeveloped"]).index, 
+           Glob_98_df["Development_Class"].value_counts().reindex(["Developed", "Developing", "Underdeveloped"]).values, color="lightgreen")
 axs[0].set_title("Number of countries per development class (1998)")
 axs[0].set_ylabel("Number of countries")
 
-axs[1].bar(counts_2021.reindex(["Developed", "Developing", "Underdeveloped"]).index, counts_2021.reindex(["Developed", "Developing", "Underdeveloped"]).values, color="skyblue")
+axs[1].bar(Glob_21_df["Development_Class"].value_counts().reindex(["Developed", "Developing", "Underdeveloped"]).index, 
+           Glob_21_df["Development_Class"].value_counts().reindex(["Developed", "Developing", "Underdeveloped"]).values, color="skyblue")
 axs[1].set_title("Number of countries per development class (2021)")
 
 plt.show()
@@ -313,16 +315,89 @@ population_sum_2021 = {"Developed": 1364608769, "Developing": 4591342874,"Underd
 fig, axs = plt.subplots(1, 2, figsize=(9, 7))
 
 axs[0].pie(population_sum_1998.values(), labels=population_sum_1998.keys(), autopct='%1.1f%%', colors=["skyblue", "lightgreen", "lightcoral"])
-axs[0].set_title('Population Distribution by Development Class (1998)')
+axs[0].set_title("Population Distribution by Development Class (1998)")
 
 axs[1].pie(population_sum_2021.values(), labels=population_sum_2021.keys(), autopct='%1.1f%%', colors=["skyblue", "lightgreen", "lightcoral"])
-axs[1].set_title('Population Distribution by Development Class (2021)')
+axs[1].set_title("Population Distribution by Development Class (2021)")
 
 plt.tight_layout()
 plt.show()
-#show that:
+#Show that 
 #1)Developed countries have less % of GDP from natural resources rents
 #2)during the period, exporter countries of natural resources increase their condition
 print(f"1998:\n{Glob_98_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()}\n2021:\n{Glob_21_df.groupby("Development_Class")["Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]"].mean()}")
 
+#Now i'm starting preparing my dataset for apply the Linear Regression Model to predict the values of GDP,
+#so i will fill Nan in columns that i want use like indipendent variables in my model
+Glob_df4.isna().sum()
+Glob_df4.columns
+m_rent_mask = Glob_df4.groupby("Code")["Mineral rents (% of GDP) [NY.GDP.MINR.RT.ZS]"].apply(lambda x: x.isna().sum())
+m_rent_mask[m_rent_mask != 0]
+interpolate_country_nan(Glob_df4,"Mineral rents (% of GDP) [NY.GDP.MINR.RT.ZS]", limit=None)
+ng_rent_mask = Glob_df4.groupby("Code")["Natural gas rents (% of GDP) [NY.GDP.NGAS.RT.ZS]"].apply(lambda x: x.isna().sum())
+ng_rent_mask[m_rent_mask != 0]
+Glob_df4.drop("PLW", level=0, inplace=True)
+interpolate_country_nan(Glob_df4,"Natural gas rents (% of GDP) [NY.GDP.NGAS.RT.ZS]", limit=None)
+Glob_df4.isna().sum()
+print(Glob_df4[Glob_df4["Natural gas rents (% of GDP) [NY.GDP.NGAS.RT.ZS]"].isna()].index)
 
+Glob_df4.drop("SLE", level=0, inplace=True)
+mi_rent_mask = Glob_df4.groupby("Code")["Merchandise imports (current US$) [TM.VAL.MRCH.CD.WT]"].apply(lambda x: x.isna().sum())
+mi_rent_mask[mi_rent_mask != 0]
+
+Glob_df4 = Glob_df4.drop("AND",level=0)
+Glob_df4 = Glob_df4.drop("SRB",level=0)
+interpolate_country_nan(Glob_df4,"Merchandise imports (current US$) [TM.VAL.MRCH.CD.WT]", limit=None)
+fo_rent_mask = Glob_df4.groupby("Code")["Forest rents (% of GDP) [NY.GDP.FRST.RT.ZS]"].apply(lambda x: x.isna().sum())
+fo_rent_mask[fo_rent_mask != 0]
+interpolate_country_nan(Glob_df4,"Forest rents (% of GDP) [NY.GDP.FRST.RT.ZS]", limit=None)
+Glob_df4.isna().sum()
+#I select these coloumns like indipendent variables
+"""GDP (current US$) [NY.GDP.MKTP.CD],Merchandise imports (current US$) [TM.VAL.MRCH.CD.WT]
+Mineral rents (% of GDP) [NY.GDP.MINR.RT.ZS]
+Natural gas rents (% of GDP) [NY.GDP.NGAS.RT.ZS]
+Population, total [SP.POP.TOTL]
+Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]
+Human Development Index, Forest rents (% of GDP) [NY.GDP.FRST.RT.ZS]"""
+#I'm resetting the index to do datasets for training and testing the model
+Glob_df4_reset = Glob_df4.reset_index()
+Glob_df4_reset.columns[Glob_df4_reset.isna().sum() == 0]
+from sklearn.linear_model import LinearRegression
+features = ["GDP (current US$) [NY.GDP.MKTP.CD]","Merchandise imports (current US$) [TM.VAL.MRCH.CD.WT]","Mineral rents (% of GDP) [NY.GDP.MINR.RT.ZS]",
+            "Natural gas rents (% of GDP) [NY.GDP.NGAS.RT.ZS]","Population, total [SP.POP.TOTL]",
+            "Total natural resources rents (% of GDP) [NY.GDP.TOTL.RT.ZS]","Human Development Index",
+            "Forest rents (% of GDP) [NY.GDP.FRST.RT.ZS]"]
+
+dipendent_variable = "GDP (constant 2015 US$) [NY.GDP.MKTP.KD]"
+
+X = Glob_df4_reset[features]
+y = Glob_df4_reset[dipendent_variable]
+from sklearn.model_selection import train_test_split
+
+# Subdivision of the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=100)
+
+print("Training set size:", X_train.shape, y_train.shape)
+print("Test set dimensions:", X_test.shape, y_test.shape)
+
+#Initialize the linear regression model
+model = LinearRegression()
+#I'm training the model on the training set
+model.fit(X_train, y_train)
+#Making predictions about the test set
+y_pred = model.predict(X_test)
+from sklearn.metrics import mean_squared_error, r2_score
+#Some metrics to evaluate the model
+print("Mean Squared Error:", mean_squared_error(y_test, y_pred))
+print("R^2:", r2_score(y_test, y_pred))
+print("Intercept: ",model.intercept_)
+print("Coefficient for each feature: ", model.coef_)
+X_ita = Glob_df4_reset[Glob_df4_reset["Code"] == "ITA"][features]
+model.predict(X_ita)
+Glob_df4.loc["ITA"]["GDP (current US$) [NY.GDP.MKTP.CD]"]
+X_usa = Glob_df4_reset[Glob_df4_reset["Code"] == "USA"][features]
+model.predict(X_usa)
+Glob_df4.loc["USA"]["GDP (current US$) [NY.GDP.MKTP.CD]"]
+X_chn = Glob_df4_reset[Glob_df4_reset["Code"] == "CHN"][features]
+model.predict(X_chn)
+Glob_df4.loc["CHN"]["GDP (current US$) [NY.GDP.MKTP.CD]"]
