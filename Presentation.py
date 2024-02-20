@@ -25,9 +25,11 @@ Glob_df = load_data("C:/Users/loris/Desktop/Project ER/Glob_df.csv")
 Glob_df2 = load_data("C:/Users/loris/Desktop/Project ER/Glob_df2.csv")
 Glob_df3 = load_data("C:/Users/loris/Desktop/Project ER/Glob_df3.csv")
 Top_gdp = load_data("C:/Users/loris/Desktop/Project ER/top_gdp_countries.csv")
+Glob_df4_reset = load_data("C:/Users/loris/Desktop/Project ER/Glob_df4_reset.csv")
 Glob_df2 = Glob_df2.set_index(["Code", "Year"])
 Glob_df3 = Glob_df3.set_index(["Code", "Year"])
 Top_gdp = Top_gdp.set_index(["Code", "Year"])
+
 #########################################################################
 # Sidebar with controls
 st.sidebar.header("Controls")
@@ -103,18 +105,17 @@ if show_top_gdp:
 
 image_files = ["The top 9 of highest GDP (constant 2015 US$)", "The top 9 for Total natural resources rents",
                "The top 9 for Military Expenditure","The top 9 for Research and development expenditure",
-               "The top 9 for Current health expenditure", "The best 10 GDP in the world (2022)"]
+               "The top 9 for Current health expenditure", "The best 15 GDP in the world (2021)"]
 
-# Menu a tendina per selezionare un'immagine
+# Drop-down menu to select an image
 selected_image = st.selectbox("Plots using the 15 highest GDP (c. 2015 $) in the world", image_files, index=None)
 
-# Dizionario contenente i percorsi delle immagini (se sono in directory diverse)
 image_paths = {"The top 9 of highest GDP (constant 2015 US$)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The top 9 of highest GDP (constant 2015 US$).png",
     "The top 9 for Total natural resources rents": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The top 9 for Total natural resources rents.png",
     "The top 9 for Military Expenditure": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The top 9 for Military Expenditure.png",
     "The top 9 for Research and development expenditure": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The top 9 for Research and development expenditure.png",
     "The top 9 for Current health expenditure": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The top 9 for Current health expenditure.png",
-    "The best 10 GDP in the world (2022)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The best 10 GDP in the world (2022).png"}
+    "The best 15 GDP in the world (2021)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\The best 15 GDP in the world (2021).png"}
 
 #Load and visualize the image
 if selected_image:
@@ -124,17 +125,58 @@ if selected_image:
 
 ###################################GRAPHS 2############################################
 
-image_files2 = ["Population Distribution by Development Class (1998)(2021)", "Number of countries per development class (1998)(2021)"]
+image_files2 = ["Population Distribution by Development Class (1998)(2021)", 
+                "Number of countries per development class (1998)(2021)",
+                "Average GDP from Natural Resources Rents by Development Class (1998 vs 2021)"]
 
-# Menu a tendina per selezionare un'immagine
+# Drop-down menu to select an image
 selected_image2 = st.selectbox("Some Macrotrends", image_files2, index=None)
 
-# Dizionario contenente i percorsi delle immagini (se sono in directory diverse)
 image_paths2 = {"Population Distribution by Development Class (1998)(2021)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\Population Distribution by Development Class (1998)(2021).png",
-    "Number of countries per development class (1998)(2021)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\Number of countries per development class (1998)(2021).png"}
+    "Number of countries per development class (1998)(2021)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\Number of countries per development class (1998)(2021).png",
+    "Average GDP from Natural Resources Rents by Development Class (1998 vs 2021)": "C:\\Users\\loris\Desktop\\Project ER\\Graphs\\Average GDP from Natural Resources Rents by Development Class (1998 vs 2021).png"}
 
 #Load and visualize the image
 if selected_image2:
     image_path2 = image_paths2[selected_image2]
     image2 = Image.open(image_path2)
     st.image(image2, caption=selected_image2)
+
+############################# MODEL #################################
+
+features = ["GDP (current US$)", "Merchandise imports (current US$)",
+                         "Mineral rents (% of GDP)", "Natural gas rents (% of GDP)",
+                         "Population, total", "Total natural resources rents (% of GDP)",
+                         "Human Development Index", "Forest rents (% of GDP)"]
+
+dependent_variable = "GDP (constant 2015 US$)"
+
+X = Glob_df4_reset[features]
+y = Glob_df4_reset[dependent_variable]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=100)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+show_model = st.sidebar.checkbox("Model", key="mod")
+if show_model:
+    #Print the model metrics and coefficients
+    st.subheader("Model Evaluation")
+    st.write("Mean Squared Error:", mse)
+    st.write("R^2 Score:", r2)
+    st.write("Coefficients:")
+    for feature, coef in zip(features, model.coef_):
+        st.write(f"{feature}: {coef}")
+
+    selected_country_code = st.selectbox("Select Country Code", Glob_df4_reset["Code"].unique())
+    selected_country_features = Glob_df4_reset[Glob_df4_reset["Code"] == selected_country_code][features]
+    #Predict for the selected country
+    predicted_gdp = model.predict(selected_country_features)
+
+    st.subheader(f"Predicted GDP for {selected_country_code}:")
+    st.write(predicted_gdp)
