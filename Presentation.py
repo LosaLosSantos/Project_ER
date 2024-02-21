@@ -30,7 +30,7 @@ Glob_df2 = Glob_df2.set_index(["Code", "Year"])
 Glob_df3 = Glob_df3.set_index(["Code", "Year"])
 Top_gdp = Top_gdp.set_index(["Code", "Year"])
 
-#########################################################################
+###############################
 # Sidebar with controls
 st.sidebar.header("Controls")
 
@@ -179,4 +179,5 @@ if show_model:
     predicted_gdp = model.predict(selected_country_features)
 
     st.subheader(f"Predicted GDP for {selected_country_code}:")
-    st.write(predicted_gdp)
+    predicted_df = pd.DataFrame(predicted_gdp, columns=["Predicted GDP"])
+    st.dataframe(predicted_df.style.format({"Predicted GDP": "{:.0f}"}))
