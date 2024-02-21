@@ -10,7 +10,8 @@ from PIL import Image
 
 #streamlit run "c:/Users/loris/Desktop/Project ER/Presentation.py"
 
-st.write("Dataset source: [click link](https://databank.worldbank.org/source/world-development-indicators)")
+st.write("Main Dataset source: [click link](https://databank.worldbank.org/source/world-development-indicators)")
+st.write("HDI source: [click link](https://hdr.undp.org/data-center/human-development-index#/indicies/HDI)")
 
 # Load the dataset after the merge and some clean operations
 @st.cache_data()
