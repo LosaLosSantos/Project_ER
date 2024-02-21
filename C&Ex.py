@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-Dev_df = pd.read_csv("C:/Users/loris/Desktop/Project ER/Develop Ind.csv")
-HDI_df = pd.read_csv("C:/Users/loris/Desktop/Project ER/human-development-index.csv")
+Dev_df = pd.read_csv("Develop Ind.csv")
+HDI_df = pd.read_csv("human-development-index.csv")
 
 HDI_df
 HDI_df.shape
