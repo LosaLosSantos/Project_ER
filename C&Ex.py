@@ -120,6 +120,7 @@ Glob_df3 = Glob_df2.copy()
 
 columns_to_convert = Glob_df3.columns[Glob_df3.dtypes == "object"]
 Glob_df3[columns_to_convert] = Glob_df3[columns_to_convert].apply(pd.to_numeric)
+Glob_df3.info()
 Glob_df3.isna().sum() == Glob_df2.isna().sum()
 #Function to interpolate NaN data for each country. This method is chosen for its ease of use and effectiveness with time series data(work better than mean or other methods)
 #The parameter limit_direction = "both" ensures interpolation works on both sides of the values in the column.
@@ -393,14 +394,22 @@ interpolate_country_nan(Glob_df4,"Merchandise imports (current US$)", limit=None
 fo_rent_mask = Glob_df4.groupby("Code")["Forest rents (% of GDP)"].apply(lambda x: x.isna().sum())
 fo_rent_mask[fo_rent_mask != 0]
 interpolate_country_nan(Glob_df4,"Forest rents (% of GDP)", limit=None)
+or_rent_mask = Glob_df4.groupby("Code")["Oil rents (% of GDP)"].apply(lambda x: x.isna().sum())
+or_rent_mask[or_rent_mask != 0]
+Glob_df4.drop("FSM", level=0, inplace=True)
+Glob_df4.drop("TUV", level=0, inplace=True)
+interpolate_country_nan(Glob_df4,"Oil rents (% of GDP)", limit=None)
+mt_rent_mask = Glob_df4.groupby("Code")["Merchandise trade (% of GDP)"].apply(lambda x: x.isna().sum())
+mt_rent_mask[fo_rent_mask != 0]
+interpolate_country_nan(Glob_df4,"Merchandise trade (% of GDP)", limit=None)
 Glob_df4.isna().sum()
-#Selected these columns like indipendent variables
+#Selected these columns like indipendent variables because they don't present a lot Nan values
+#and it's possible interpolate them without distort the data too much
 """GDP (current US$),Merchandise imports (current US$)
-Mineral rents (% of GDP)
-Natural gas rents (% of GDP)
-Population, total
-Total natural resources rents (% of GDP)
-Human Development Index, Forest rents (% of GDP)"""
+Mineral rents (% of GDP), Natural gas rents (% of GDP)
+Population, total , Total natural resources rents (% of GDP)
+Human Development Index, Forest rents (% of GDP)
+Oil rents (% of GDP), Coal rents (% of GDP),Merchandise trade (% of GDP)"""
 #Resetting the index to training and testing the model
 Glob_df4_reset = Glob_df4.reset_index()
 Glob_df4_reset.to_csv("Glob_df4_reset.csv", index= True)
@@ -408,7 +417,7 @@ Glob_df4_reset.columns[Glob_df4_reset.isna().sum() == 0]
 from sklearn.linear_model import LinearRegression
 features = ["GDP (current US$)","Merchandise imports (current US$)","Mineral rents (% of GDP)",
             "Natural gas rents (% of GDP)","Population, total","Total natural resources rents (% of GDP)",
-            "Human Development Index","Forest rents (% of GDP)"]
+            "Human Development Index","Forest rents (% of GDP)","Oil rents (% of GDP)", "Merchandise trade (% of GDP)"]
 
 dipendent_variable = "GDP (constant 2015 US$)"
 

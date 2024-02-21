@@ -19,7 +19,7 @@ def load_data(cc):
     data = pd.read_csv(cc)
     return data
 
-st.header("Analysis of economic indices and GDP forecast")
+st.header("Analysis of Economic Development Indicators and GDP forecast")
 
 Glob_df = load_data("C:/Users/loris/Desktop/Project ER/Glob_df.csv")
 Glob_df2 = load_data("C:/Users/loris/Desktop/Project ER/Glob_df2.csv")
@@ -39,12 +39,17 @@ show_data_Glob_df = st.sidebar.checkbox("Glob_df", key="df")
 
 if show_data_Glob_df:
     st.subheader("Glob_df")
-    st.dataframe(Glob_df)
+    st.write(Glob_df.head(5))
+    st.write(Glob_df.tail(5))
     st.sidebar.subheader("Subcontrols")
     show_data1 = st.sidebar.checkbox("Missing Values for Glob_df1", key="1_1")
     if show_data1:
         st.subheader("Missing Values for Glob_df")
         st.write(Glob_df.isna().sum())
+    show_data1_2 = st.sidebar.checkbox("Data Types Glob_df", key="1_2")
+    if show_data1_2:
+        st.subheader("Data Types Glob_df")
+        st.write(Glob_df.dtypes)
 
 ############## Group for Glob_df2
 show_data_Glob_df2 = st.sidebar.checkbox("Glob_df2", key="df2")
@@ -61,11 +66,6 @@ if show_data_Glob_df2:
     if show_data2_2:
         st.subheader("Missing Values per Year for Glob_df2")
         st.write(Glob_df2.isna().groupby("Year").sum())
-    show_data2_3 = st.sidebar.checkbox("Index", key="2_3")
-    if show_data2_3:
-        st.subheader("Index for Glob_df2")
-        st.write(Glob_df2.index)
-
     
 ############# Group for Glob_df3
 show_data_Glob_df3 = st.sidebar.checkbox("Glob_df3", key="df3")
@@ -78,16 +78,19 @@ if show_data_Glob_df3:
     if show_data3_1:
         st.subheader("Missing Values for Glob_df3")
         st.write(Glob_df3.isna().sum())
-    show_data3_2 = st.sidebar.checkbox("Columns", key="3_2")
+    show_data3_2 = st.sidebar.checkbox("Data Types Glob_df3", key="3_2")
     if show_data3_2:
+        st.subheader("Data Types Glob_df3")
+        st.write(Glob_df3.dtypes)
+    show_data3_3 = st.sidebar.checkbox("Columns for Glob_df3", key="3_3")
+    if show_data3_3:
         st.subheader("Columns for Glob_df3")
         st.write(Glob_df3.columns)
-    show_data3_3 = st.sidebar.checkbox("The best 10 GDP per capita", key="3_3")
-    if show_data3_3:
+    show_data3_4 = st.sidebar.checkbox("The best 10 GDP per capita", key="3_4")
+    if show_data3_4:
         st.subheader("The best 10 GDP per capita")
         st.write(Glob_df3.loc[Glob_df3.index.get_level_values("Year") == 2021, "GDP_pc"].nlargest(10))
     
-
 show_matrix = st.sidebar.checkbox("Correlation Matrix of columns", key="corr")
 if show_matrix:
     correlation_matrix = Glob_df3.corr()
@@ -145,9 +148,10 @@ if selected_image2:
 ############################# MODEL #################################
 
 features = ["GDP (current US$)", "Merchandise imports (current US$)",
-                         "Mineral rents (% of GDP)", "Natural gas rents (% of GDP)",
-                         "Population, total", "Total natural resources rents (% of GDP)",
-                         "Human Development Index", "Forest rents (% of GDP)"]
+            "Mineral rents (% of GDP)", "Natural gas rents (% of GDP)",
+            "Population, total", "Total natural resources rents (% of GDP)",
+            "Human Development Index", "Forest rents (% of GDP)",
+            "Oil rents (% of GDP)","Merchandise trade (% of GDP)"]
 
 dependent_variable = "GDP (constant 2015 US$)"
 
@@ -175,9 +179,11 @@ if show_model:
 
     selected_country_code = st.selectbox("Select Country Code", Glob_df4_reset["Code"].unique())
     selected_country_features = Glob_df4_reset[Glob_df4_reset["Code"] == selected_country_code][features]
+
     #Predict for the selected country
     predicted_gdp = model.predict(selected_country_features)
 
     st.subheader(f"Predicted GDP for {selected_country_code}:")
-    predicted_df = pd.DataFrame(predicted_gdp, columns=["Predicted GDP"])
-    st.dataframe(predicted_df.style.format({"Predicted GDP": "{:.0f}"}))
+    predicted_df = pd.DataFrame(predicted_gdp, columns=["Predicted GDP"], index = np.arange(1998, 2022))
+    st.dataframe(predicted_df.style.format({"Predicted GDP": "{:.0f}"}), width = 200)
+   
